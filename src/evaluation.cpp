@@ -1,15 +1,17 @@
+
+
 /**
  * @file evaluation.cpp
  * @brief Expression evaluation implementation for the Scheme interpreter
  * @author luke36
- * 
+ *
  * This file implements evaluation methods for all expression types in the Scheme
  * interpreter. Functions are organized according to ExprType enumeration order
  * from Def.hpp for consistency and maintainability.
  */
 
 #include "value.hpp"
-#include "expr.hpp" 
+#include "expr.hpp"
 #include "RE.hpp"
 #include "syntax.hpp"
 #include <cstring>
@@ -60,7 +62,7 @@ Value Binary::eval(Assoc &e) { // evaluation of two-operators primitive
 Value Variadic::eval(Assoc &e) { // evaluation of multi-operator primitive
     // TODO: TO COMPLETE THE VARIADIC CLASS
     std::vector<Value> evaluated_args;
-    for (auto &arg_expr : rands) {
+    for (const auto &arg_expr : rands) {
         evaluated_args.push_back(arg_expr->eval(e));
     }
     return evalRator(evaluated_args);
@@ -69,53 +71,62 @@ Value Variadic::eval(Assoc &e) { // evaluation of multi-operator primitive
 
 Value Var::eval(Assoc &e) { // evaluation of variable
     // TODO: TO identify the invalid variable
-    // We request all valid variable just need to be a symbol,you should promise:
-    //The first character of a variable name cannot be a digit or any character from the set: {.@}
-    //If a string can be recognized as a number, it will be prioritized as a number. For example: 1, -1, +123, .123, +124., 1e-3
-    //Variable names can overlap with primitives and reserve_words
-    //Variable names can contain any non-whitespace characters except #, ', ", `, but the first character cannot be a digit
-    //When a variable is not defined in the current scope, your interpreter should output RuntimeError
-
-    Value matched_value = find(x, e);
     //当前环境查找，找到返回
-    if (matched_value.get() != nullptr) {
-        return matched_value;
-    }
+    // if (matched_value.get() != nullptr) {
+    //     return matched_value;
+    // }
 
-    else if(matched_value.get() == nullptr) {
-        if (x.empty()) {
+    if (x.empty()) {
             throw RuntimeError("Empty expression");
         }
-        if (std::isdigit(x[0]) || x[0] == '.' || x[0] == '@') {
+    if (std::isdigit(x[0]) || x[0] == '.' || x[0] == '@') {
             throw RuntimeError("Invalid expression");
         }
         // 在现有的检查后面添加：
-        for (char c : x) {
-            if (c == '\'' || c == '"' || c == '`'|| c == '#') {
-                throw RuntimeError("Invalid expression");
-            }
+    for (char c : x) {
+        if (c == '\'' || c == '"' || c == '`'|| c == '#') {
+            throw RuntimeError("Invalid expression");
         }
+    }
+    Value matched_value = find(x, e);
+    if (matched_value.get()!=nullptr) {
+        return matched_value;
+    }
         //内置函数，创建闭包返回
+
         if (primitives.count(x)) {
-             static std::map<ExprType, std::pair<Expr, std::vector<std::string>>> primitive_map = {
-                    {E_VOID,     {new MakeVoid(), {}}},
-                    {E_EXIT,     {new Exit(), {}}},
-                    {E_BOOLQ,    {new IsBoolean(new Var("parm")), {"parm"}}},
-                    {E_INTQ,     {new IsFixnum(new Var("parm")), {"parm"}}},
-                    {E_NULLQ,    {new IsNull(new Var("parm")), {"parm"}}},
-                    {E_PAIRQ,    {new IsPair(new Var("parm")), {"parm"}}},
-                    {E_PROCQ,    {new IsProcedure(new Var("parm")), {"parm"}}},
-                    {E_SYMBOLQ,  {new IsSymbol(new Var("parm")), {"parm"}}},
-                    {E_STRINGQ,  {new IsString(new Var("parm")), {"parm"}}},
-                    {E_DISPLAY,  {new Display(new Var("parm")), {"parm"}}},
-                    {E_PLUS,     {new PlusVar({}),  {}}},
-                    {E_MINUS,    {new MinusVar({}), {}}},
-                    {E_MUL,      {new MultVar({}),  {}}},
-                    {E_DIV,      {new DivVar({}),   {}}},
-                    {E_MODULO,   {new Modulo(new Var("parm1"), new Var("parm2")), {"parm1","parm2"}}},
-                    {E_EXPT,     {new Expt(new Var("parm1"), new Var("parm2")), {"parm1","parm2"}}},
-                    {E_EQQ,      {new EqualVar({}), {}}},
-            };
+            std::cout << "Found primitive: " << x << std::endl;
+            static std::map<ExprType, std::pair<Expr, std::vector<std::string>>> primitive_map = {
+                {E_VOID,     {new MakeVoid(), {}}},
+                {E_EXIT,     {new Exit(), {}}},
+                {E_BOOLQ,    {new IsBoolean(new Var("parm")), {"parm"}}},
+                {E_INTQ,     {new IsFixnum(new Var("parm")), {"parm"}}},
+                {E_NULLQ,    {new IsNull(new Var("parm")), {"parm"}}},
+                {E_PAIRQ,    {new IsPair(new Var("parm")), {"parm"}}},
+                {E_PROCQ,    {new IsProcedure(new Var("parm")), {"parm"}}},
+                {E_SYMBOLQ,  {new IsSymbol(new Var("parm")), {"parm"}}},
+                {E_STRINGQ,  {new IsString(new Var("parm")), {"parm"}}},
+                {E_DISPLAY,  {new Display(new Var("parm")), {"parm"}}},
+
+               {E_PLUS,     {new Plus(new Var("parm1"), new Var("parm2")), {"parm1","parm2"}}},  // 改为二元 Plus
+               {E_MINUS,    {new Minus(new Var("parm1"), new Var("parm2")), {"parm1","parm2"}}}, // 改为二元 Minus
+               {E_MUL,      {new Mult(new Var("parm1"), new Var("parm2")), {"parm1","parm2"}}},  // 改为二元 Mult
+               {E_DIV,      {new Div(new Var("parm1"), new Var("parm2")), {"parm1","parm2"}}},   // 改为二元 Div
+               {E_MODULO,   {new Modulo(new Var("parm1"), new Var("parm2")), {"parm1","parm2"}}},
+               {E_EXPT,     {new Expt(new Var("parm1"), new Var("parm2")), {"parm1","parm2"}}},
+               {E_EQQ,      {new IsEq(new Var("parm1"), new Var("parm2")), {"parm1","parm2"}}},  // 改为二元 IsEq
+               {E_LT,       {new Less(new Var("parm1"), new Var("parm2")), {"parm1","parm2"}}},  // 添加比较运算符
+               {E_LE,       {new LessEq(new Var("parm1"), new Var("parm2")), {"parm1","parm2"}}},
+               {E_EQ,       {new Equal(new Var("parm1"), new Var("parm2")), {"parm1","parm2"}}},
+               {E_GE,       {new GreaterEq(new Var("parm1"), new Var("parm2")), {"parm1","parm2"}}},
+               {E_GT,       {new Greater(new Var("parm1"), new Var("parm2")), {"parm1","parm2"}}},
+               {E_CONS,     {new Cons(new Var("parm1"), new Var("parm2")), {"parm1","parm2"}}},  // 添加 cons
+               {E_CAR,      {new Car(new Var("parm")), {"parm"}}},                               // 添加 car
+               {E_CDR,      {new Cdr(new Var("parm")), {"parm"}}},                               // 添加 cdr
+               {E_NOT,      {new Not(new Var("parm")), {"parm"}}},                               // 添加 not
+               {E_SETCAR,   {new SetCar(new Var("parm1"), new Var("parm2")), {"parm1","parm2"}}}, // 添加 set-car!
+               {E_SETCDR,   {new SetCdr(new Var("parm1"), new Var("parm2")), {"parm1","parm2"}}}, // 添加 set-cdr!
+             };
 
             auto it = primitive_map.find(primitives[x]);
             //TOD0:to PASS THE parameters correctly;
@@ -124,11 +135,10 @@ Value Var::eval(Assoc &e) { // evaluation of variable
                 //TODO
                 return ProcedureV(it->second.second, it->second.first,e);
             }
-      }
-    }
+        }
+
     throw RuntimeError("Variable " + x + " not defined");
 }
-
 
 Value Plus::evalRator(const Value &rand1, const Value &rand2) { // +
     //TODO: To complete the addition logic
@@ -136,6 +146,7 @@ Value Plus::evalRator(const Value &rand1, const Value &rand2) { // +
         int n1 = dynamic_cast<Integer*>(rand1.get())->n;
         int n2 = dynamic_cast<Integer*>(rand2.get())->n;
         int result = n1 + n2;
+        std::cout << "Adding integers: " << n1 << " + " << n2 << " = " << (n1+n2) << std::endl;
         return IntegerV(result);
     }
     else if (rand1->v_type == V_RATIONAL && rand2->v_type == V_RATIONAL) {
@@ -215,7 +226,7 @@ Value Minus::evalRator(const Value &rand1, const Value &rand2) { // -
         int num = r1->numerator;
         int den = r1->denominator;
         int n2 = dynamic_cast<Integer*>(rand2.get())->n;
-        int new_num = num - den*n2;
+         int new_num = num - n2 * den;;
         return RationalV(new_num, den);
     }
     throw(RuntimeError("Wrong typename"));
@@ -605,18 +616,18 @@ Value Expt::evalRator(const Value &rand1, const Value &rand2) { // expt
     if (rand1->v_type == V_INT && rand2->v_type == V_INT) {
         int base = dynamic_cast<Integer*>(rand1.get())->n;
         int exponent = dynamic_cast<Integer*>(rand2.get())->n;
-        
+
         if (exponent < 0) {
             throw(RuntimeError("Negative exponent not supported for integers"));
         }
         if (base == 0 && exponent == 0) {
             throw(RuntimeError("0^0 is undefined"));
         }
-        
+
         long long result = 1;
         long long b = base;
         int exp = exponent;
-        
+
         while (exp > 0) {
             if (exp % 2 == 1) {
                 result *= b;
@@ -632,7 +643,7 @@ Value Expt::evalRator(const Value &rand1, const Value &rand2) { // expt
             }
             exp /= 2;
         }
-        
+
         return IntegerV((int)result);
     }
     throw(RuntimeError("Wrong typename"));
@@ -780,6 +791,9 @@ Value Cons::evalRator(const Value &rand1, const Value &rand2) { // cons
 
 Value ListFunc::evalRator(const std::vector<Value> &args) { // list function
     //TODO: To complete the list logic
+    if (args.empty()) {
+        return NullV();
+    }
     Value result = NullV();
 
     for (int i = args.size()-1; i >= 0; i--) {
@@ -1089,7 +1103,7 @@ Value Cond::eval(Assoc &env) {
     return VoidV();
 }
 
-Value Lambda::eval(Assoc &env) { 
+Value Lambda::eval(Assoc &env) {
     //TODO: To complete the lambda logic
     Assoc new_env = env;
     return ProcedureV(x,e,new_env);//创建一个闭包，包括参数列表，函数体，定义时的环境
@@ -1097,7 +1111,8 @@ Value Lambda::eval(Assoc &env) {
 
 Value Apply::eval(Assoc &e) {
 
-     if (rator->eval(e)->v_type != V_PROC) {//不是函数类型
+    Value proc_value = rator->eval(e);
+     if (proc_value->v_type != V_PROC) {//不是函数类型
          throw RuntimeError("Attempt to apply a non-procedure");
      }
 
@@ -1109,10 +1124,10 @@ Value Apply::eval(Assoc &e) {
      for (auto &arg_expr : rand) {
          args.push_back(arg_expr->eval(e));
      }
-     if (auto varNode = dynamic_cast<Variadic*>(clos_ptr->e.get())) {
-         //TODO
-
-     }
+     // if (auto varNode = dynamic_cast<Variadic*>(clos_ptr->e.get())) {
+     //     //TODO
+     //
+     // }
      if (args.size() != clos_ptr->parameters.size()) throw RuntimeError("Wrong number of arguments");
 
      //TODO: TO COMPLETE THE PARAMETERS' ENVIRONMENT LOGIC
@@ -1126,8 +1141,13 @@ Value Apply::eval(Assoc &e) {
 
 }
 
+
 Value Define::eval(Assoc &env) {
     //TODO: To complete the define logic
+    if (primitives.count(var) || reserved_words.count(var)) {
+        throw RuntimeError("Undefined variable");
+    }
+    env = extend(var,Value(nullptr),env);
     Value value = e->eval(env);//e是Define结构体的表达式成员，->eval(env)是调用该表达式的求值方法
     modify(var,value,env);//在环境中创建或修改变量绑定
     return VoidV();
@@ -1215,6 +1235,6 @@ Value Display::evalRator(const Value &rand) { // display function
     } else {
         rand->show(std::cout);
     }
-    
+
     return VoidV();
 }

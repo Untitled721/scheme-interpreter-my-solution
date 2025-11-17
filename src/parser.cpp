@@ -1,8 +1,9 @@
 
+
 /**
  * @file parser.cpp
  * @brief Parsing implementation for Scheme syntax tree to expression tree conversion
- * 
+ *
  * This file implements the parsing logic that converts syntax trees into
  * expression trees that can be evaluated.
  * primitive operations, and function applications.
@@ -70,10 +71,10 @@ Expr List::parse(Assoc &env) {
     if (id == nullptr) {//如果没有命令词，从头开始参数解析
         //TODO: TO COMPLETE THE LOGIC
         vector<Expr> parameters;
-        for (size_t i = 0; i < stxs.size(); i++) {
-            parameters.push_back(stxs[i].parse(env));
+        for (size_t i = 1; i < stxs.size(); i++) {
+            parameters.push_back(stxs[i]->parse(env));
         }
-        return Expr(new Apply(parameters[0], vector<Expr>(parameters.begin() + 1, parameters.end())));
+        return Expr(new Apply(stxs[0]->parse(env), parameters));
     }
 
     //如果有命令词
@@ -82,7 +83,7 @@ Expr List::parse(Assoc &env) {
     vector<Expr> parameters;
     //跳过第一个（命令词）开始参数解析
     for (size_t i = 1; i < stxs.size(); i++) {
-        parameters.push_back(stxs[i].parse(env));
+        parameters.push_back(stxs[i]->parse(env));
     }
 
 
@@ -111,14 +112,17 @@ Expr List::parse(Assoc &env) {
 
         } else if (op_type == E_MINUS) {
             //TODO: TO COMPLETE THE LOGIC
-        	if (parameters.size() == 1) {
+        	if (parameters.size() == 0) {
+        		throw RuntimeError("Undefined variable");
+        	}
+        	else if (parameters.size() == 1) {
         		return Expr(new MinusVar(parameters));//-x
         	}
             else if (parameters.size() == 2) {
                 return Expr(new Minus(parameters[0], parameters[1]));
             }
         	else {
-                throw RuntimeError("Wrong number of arguments for -");
+                return Expr(new MinusVar(parameters));
             }
         } else if (op_type == E_MUL) {
             //TODO: TO COMPLETE THE LOGIC
@@ -132,7 +136,7 @@ Expr List::parse(Assoc &env) {
                 return Expr(new Mult(parameters[0], parameters[1]));
             }
         	else {
-                throw RuntimeError("Wrong number of arguments for *");
+                return Expr(new MultVar(parameters));
             }
         }  else if (op_type == E_DIV) {
             //TODO: TO COMPLETE THE LOGIC
@@ -294,7 +298,7 @@ Expr List::parse(Assoc &env) {
 
     	            vector<Expr> body_exprs;
     	            for (size_t i = 2; i < stxs.size(); i++) {
-    	                body_exprs.push_back(stxs[i].parse(env));
+    	                body_exprs.push_back(stxs[i]->parse(env));
     	            }
     	            if (body_exprs.empty()) {
     	                throw RuntimeError("Wrong syntax");
@@ -339,7 +343,7 @@ Expr List::parse(Assoc &env) {
     	                        }
     	                        vector<Expr> body_exprs;
     	                        for (size_t i = 2; i < stxs.size(); i++) {
-    	                            body_exprs.push_back(stxs[i].parse(env));
+    	                            body_exprs.push_back(stxs[i]->parse(env));
     	                        }
     	                        if (body_exprs.empty()) {
     	                            throw RuntimeError("Wrong");
@@ -383,7 +387,7 @@ Expr List::parse(Assoc &env) {
     	            auto var_syntax = dynamic_cast<SymbolSyntax*>(stxs[1].get());
     	            if (var_syntax) {
     	                string var_name = var_syntax->s;
-    	                Expr value_expr = stxs[2].parse(env);
+    	                Expr value_expr = stxs[2]->parse(env);
     	                return Expr(new Set(var_name,value_expr));
     	            }
     	        }
